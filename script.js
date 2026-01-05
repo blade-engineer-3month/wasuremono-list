@@ -1,0 +1,284 @@
+// ========================================
+// データ管理
+// ========================================
+
+// 初期データ
+const DEFAULT_ITEMS = [
+    { id: 1, text: '財布', checked: false },
+    { id: 2, text: 'スマホ', checked: false },
+    { id: 3, text: '鍵', checked: false },
+    { id: 4, text: 'マスク', checked: false }
+];
+
+// ローカルストレージキー
+const STORAGE_KEY = 'wasuremono-list';
+
+// 現在のリストデータ
+let items = [];
+
+// ========================================
+// DOM要素
+// ========================================
+const checklist = document.getElementById('checklist');
+const addBtn = document.getElementById('add-btn');
+const modal = document.getElementById('modal');
+const addForm = document.getElementById('add-form');
+const itemInput = document.getElementById('item-input');
+const cancelBtn = document.getElementById('cancel-btn');
+const checkAllBtn = document.getElementById('check-all-btn');
+const resetBtn = document.getElementById('reset-btn');
+const statusElement = document.getElementById('status');
+const remainingCountElement = document.getElementById('remaining-count');
+
+// ========================================
+// 初期化
+// ========================================
+function init() {
+    loadData();
+    renderList();
+    updateStatus();
+    attachEventListeners();
+}
+
+// ========================================
+// データ読み込み
+// ========================================
+function loadData() {
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    if (savedData) {
+        try {
+            items = JSON.parse(savedData);
+        } catch (e) {
+            console.error('データ読み込みエラー:', e);
+            items = [...DEFAULT_ITEMS];
+        }
+    } else {
+        items = [...DEFAULT_ITEMS];
+    }
+}
+
+// ========================================
+// データ保存
+// ========================================
+function saveData() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
+// ========================================
+// リスト描画
+// ========================================
+function renderList() {
+    checklist.innerHTML = '';
+
+    if (items.length === 0) {
+        checklist.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📝</div>
+                <div class="empty-state-text">項目を追加してください</div>
+            </div>
+        `;
+        return;
+    }
+
+    items.forEach(item => {
+        const li = createListItem(item);
+        checklist.appendChild(li);
+    });
+}
+
+// ========================================
+// リスト項目作成
+// ========================================
+function createListItem(item) {
+    const li = document.createElement('li');
+    li.className = `list-item ${item.checked ? 'checked' : ''}`;
+    li.dataset.id = item.id;
+
+    li.innerHTML = `
+        <div class="checkbox-wrapper">
+            <div class="checkbox">
+                <span class="checkmark">✓</span>
+            </div>
+        </div>
+        <span class="item-text">${escapeHtml(item.text)}</span>
+        <button class="delete-btn" aria-label="削除">×</button>
+    `;
+
+    // 行全体タップでチェック切替
+    li.addEventListener('click', (e) => {
+        // 削除ボタンクリック時は除外
+        if (e.target.classList.contains('delete-btn')) {
+            return;
+        }
+        toggleCheck(item.id);
+    });
+
+    // 削除ボタン
+    const deleteBtn = li.querySelector('.delete-btn');
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteItem(item.id);
+    });
+
+    return li;
+}
+
+// ========================================
+// HTMLエスケープ
+// ========================================
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ========================================
+// チェック切替
+// ========================================
+function toggleCheck(id) {
+    const item = items.find(i => i.id === id);
+    if (item) {
+        item.checked = !item.checked;
+        saveData();
+        renderList();
+        updateStatus();
+    }
+}
+
+// ========================================
+// 項目削除
+// ========================================
+function deleteItem(id) {
+    if (confirm('本当に削除しますか？')) {
+        items = items.filter(i => i.id !== id);
+        saveData();
+        renderList();
+        updateStatus();
+    }
+}
+
+// ========================================
+// ステータス更新
+// ========================================
+function updateStatus() {
+    const uncheckedCount = items.filter(i => !i.checked).length;
+    remainingCountElement.textContent = uncheckedCount;
+
+    if (items.length > 0 && uncheckedCount === 0) {
+        statusElement.innerHTML = '🎉 忘れ物ゼロ！';
+        statusElement.classList.add('complete');
+    } else {
+        statusElement.innerHTML = `あと <span id="remaining-count">${uncheckedCount}</span> こ！`;
+        statusElement.classList.remove('complete');
+    }
+}
+
+// ========================================
+// モーダル表示
+// ========================================
+function showModal() {
+    modal.classList.add('active');
+    itemInput.value = '';
+    // 少し遅延させてフォーカス（モバイルキーボード対応）
+    setTimeout(() => {
+        itemInput.focus();
+    }, 100);
+}
+
+// ========================================
+// モーダル非表示
+// ========================================
+function hideModal() {
+    modal.classList.remove('active');
+    itemInput.value = '';
+}
+
+// ========================================
+// 項目追加
+// ========================================
+function addItem(text) {
+    const trimmedText = text.trim();
+    if (!trimmedText) {
+        return;
+    }
+
+    const newItem = {
+        id: Date.now(),
+        text: trimmedText,
+        checked: false
+    };
+
+    items.push(newItem);
+    saveData();
+    renderList();
+    updateStatus();
+    hideModal();
+}
+
+// ========================================
+// 全部チェック
+// ========================================
+function checkAll() {
+    items.forEach(item => {
+        item.checked = true;
+    });
+    saveData();
+    renderList();
+    updateStatus();
+}
+
+// ========================================
+// リセット
+// ========================================
+function resetAll() {
+    if (confirm('全てのチェックを外しますか？')) {
+        items.forEach(item => {
+            item.checked = false;
+        });
+        saveData();
+        renderList();
+        updateStatus();
+    }
+}
+
+// ========================================
+// イベントリスナー設定
+// ========================================
+function attachEventListeners() {
+    // 追加ボタン
+    addBtn.addEventListener('click', showModal);
+
+    // キャンセルボタン
+    cancelBtn.addEventListener('click', hideModal);
+
+    // モーダル背景クリックで閉じる
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            hideModal();
+        }
+    });
+
+    // フォーム送信
+    addForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        addItem(itemInput.value);
+    });
+
+    // 全部チェックボタン
+    checkAllBtn.addEventListener('click', checkAll);
+
+    // リセットボタン
+    resetBtn.addEventListener('click', resetAll);
+
+    // Escキーでモーダルを閉じる
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            hideModal();
+        }
+    });
+}
+
+// ========================================
+// アプリ起動
+// ========================================
+document.addEventListener('DOMContentLoaded', init);

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="スマホ最適化された忘れ物防止チェックリスト">
+    <title>わすれもの - 忘れ物防止リスト</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- 固定ヘッダー -->
+    <header class="header">
+        <h1 class="header-title">🎒 わすれもの</h1>
+        <p class="header-subtitle">✨ 出かける前！</p>
+    </header>
+
+    <!-- ステータス表示 -->
+    <div class="status-container">
+        <div id="status" class="status">
+            あと <span id="remaining-count">0</span> こ！
+        </div>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <main class="main-content">
+        <!-- リスト表示エリア -->
+        <ul id="checklist" class="checklist">
+            <!-- JavaScriptで動的に生成 -->
+        </ul>
+
+        <!-- アクションボタン -->
+        <div class="action-buttons">
+            <button id="check-all-btn" class="btn btn-success">
+                🎉 全部チェック
+            </button>
+            <button id="reset-btn" class="btn btn-secondary">
+                ↺ リセット
+            </button>
+        </div>
+    </main>
+
+    <!-- フローティング追加ボタン -->
+    <button id="add-btn" class="floating-add-btn" aria-label="項目を追加">
+        ＋
+    </button>
+
+    <!-- モーダル（項目追加） -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h2 class="modal-title">新しい項目を追加</h2>
+            <form id="add-form">
+                <input type="text" id="item-input" class="modal-input" placeholder="例：ハンカチ" maxlength="30"
+                    autocomplete="off" required>
+                <div class="modal-buttons">
+                    <button type="button" id="cancel-btn" class="btn btn-secondary">
+                        キャンセル
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        追加
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
