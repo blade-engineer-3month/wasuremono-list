@@ -16,6 +16,11 @@ const STORAGE_KEY = 'wasuremono-list';
 // 現在のリストデータ
 let items = [];
 
+// ドラッグ状態
+let draggedElement = null;
+let dragStartY = 0;
+let isDragging = false;
+
 // ========================================
 // DOM要素
 // ========================================
@@ -95,6 +100,9 @@ function createListItem(item) {
     li.dataset.id = item.id;
 
     li.innerHTML = `
+        <div class="drag-handle" aria-label="並び替え">
+            ☰
+        </div>
         <div class="checkbox-wrapper">
             <div class="checkbox">
                 <span class="checkmark">✓</span>
@@ -106,8 +114,10 @@ function createListItem(item) {
 
     // 行全体タップでチェック切替
     li.addEventListener('click', (e) => {
-        // 削除ボタンクリック時は除外
-        if (e.target.classList.contains('delete-btn')) {
+        // 削除ボタン、ドラッグハンドルクリック時は除外
+        if (e.target.classList.contains('delete-btn') ||
+            e.target.classList.contains('drag-handle') ||
+            e.target.closest('.drag-handle')) {
             return;
         }
         toggleCheck(item.id);
@@ -120,6 +130,10 @@ function createListItem(item) {
         deleteItem(item.id);
     });
 
+    // ドラッグ機能
+    const dragHandle = li.querySelector('.drag-handle');
+    setupDragAndDrop(li, dragHandle);
+
     return li;
 }
 
@@ -130,6 +144,105 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// ========================================
+// ドラッグ&ドロップ機能
+// ========================================
+function setupDragAndDrop(listItem, dragHandle) {
+    // マウスイベント（PC用）
+    dragHandle.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        startDrag(listItem, e.clientY);
+    });
+
+    // タッチイベント（スマホ用）
+    dragHandle.addEventListener('touchstart', (e) => {
+        startDrag(listItem, e.touches[0].clientY);
+    }, { passive: true });
+}
+
+function startDrag(element, startY) {
+    draggedElement = element;
+    dragStartY = startY;
+    isDragging = false;
+    element.style.cursor = 'grabbing';
+}
+
+// グローバルマウス移動イベント
+document.addEventListener('mousemove', (e) => {
+    if (draggedElement && e.buttons === 1) {
+        handleDragMove(e.clientY, e.clientX);
+    }
+});
+
+// グローバルタッチ移動イベント
+document.addEventListener('touchmove', (e) => {
+    if (draggedElement) {
+        const touch = e.touches[0];
+        handleDragMove(touch.clientY, touch.clientX);
+    }
+}, { passive: false });
+
+function handleDragMove(clientY, clientX) {
+    const moveDistance = Math.abs(clientY - dragStartY);
+
+    // 5px以上移動したらドラッグ開始
+    if (!isDragging && moveDistance > 5) {
+        isDragging = true;
+        draggedElement.classList.add('dragging');
+    }
+
+    if (isDragging) {
+        // 現在の位置にある要素を取得
+        const elementBelow = document.elementFromPoint(clientX, clientY);
+        const listItemBelow = elementBelow?.closest('.list-item');
+
+        if (listItemBelow && listItemBelow !== draggedElement) {
+            const rect = listItemBelow.getBoundingClientRect();
+            const midpoint = rect.top + rect.height / 2;
+
+            // 中点より上なら前に、下なら後ろに挿入
+            if (clientY < midpoint) {
+                checklist.insertBefore(draggedElement, listItemBelow);
+            } else {
+                checklist.insertBefore(draggedElement, listItemBelow.nextSibling);
+            }
+        }
+    }
+}
+
+// グローバルマウスアップイベント
+document.addEventListener('mouseup', () => {
+    endDrag();
+});
+
+// グローバルタッチ終了イベント
+document.addEventListener('touchend', () => {
+    endDrag();
+});
+
+function endDrag() {
+    if (draggedElement) {
+        if (isDragging) {
+            draggedElement.classList.remove('dragging');
+            updateItemsOrder();
+            saveData();
+        }
+        draggedElement.style.cursor = '';
+        draggedElement = null;
+        isDragging = false;
+    }
+}
+
+// 並び替え後の順序を更新
+function updateItemsOrder() {
+    const listItems = Array.from(checklist.querySelectorAll('.list-item'));
+    const newOrder = listItems.map(li => parseInt(li.dataset.id));
+
+    items.sort((a, b) => {
+        return newOrder.indexOf(a.id) - newOrder.indexOf(b.id);
+    });
 }
 
 // ========================================

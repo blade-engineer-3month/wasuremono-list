@@ -148,6 +148,34 @@ body {
     text-decoration: line-through;
 }
 
+/* ドラッグハンドル */
+.drag-handle {
+    flex-shrink: 0;
+    margin-right: 12px;
+    color: var(--text-gray);
+    font-size: 20px;
+    cursor: grab;
+    padding: 4px;
+    user-select: none;
+    touch-action: none;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.drag-handle:hover,
+.drag-handle:active {
+    opacity: 1;
+}
+
+/* ドラッグ中 */
+.list-item.dragging {
+    opacity: 0.5;
+    transform: scale(1.05);
+    box-shadow: 0 8px 16px var(--shadow);
+    z-index: 1000;
+}
+
+
 /* チェックボックス */
 .checkbox-wrapper {
     flex-shrink: 0;
